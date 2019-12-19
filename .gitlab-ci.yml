@@ -1,0 +1,60 @@
+stages:
+  - build
+  - lint
+  - unit_testing
+  - acceptance
+
+#################################### BUILD #####################################
+
+build:
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    db_event_store_username: "postgres" 
+    db_event_store_password: "postgres"
+    db_event_store_database: "car_pooling_event_store"
+    db_event_store_hostname: "postgres"
+    db_read_store_username: "postgres"
+    db_read_store_password: "postgres"
+    db_read_store_database: "car_pooling_read_store"
+    db_read_store_hostname: "postgres"
+    MIX_ENV: "test"
+  before_script:
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+  stage: build
+  script:
+    - echo ${CI_JOB_TOKEN} | docker login --password-stdin -u ${CI_REGISTRY_USER} ${CI_REGISTRY}
+    - docker build . -t ${CI_REGISTRY_IMAGE}:latest
+    - docker push ${CI_REGISTRY_IMAGE}:latest
+
+
+#################################### LINT #####################################
+
+lint:
+  image: elixir:1.9.0-alpine
+  stage: lint
+  script:
+    - mix format --check-formatted
+
+#################################### TEST #####################################
+
+unit_testing:
+  image: ${CI_REGISTRY_IMAGE}:latest
+  # To Run on local gitlab-runner
+  # image: registry.gitlab.com/cabify-challenge/car-pooling-challenge-felipebpereira:latest
+  services:
+    - postgres:9.6-alpine
+  variables:
+    db_event_store_username: "postgres" 
+    db_event_store_password: "postgres"
+    db_event_store_database: "car_pooling_event_store"
+    db_event_store_hostname: "postgres"
+    db_read_store_username: "postgres"
+    db_read_store_password: "postgres"
+    db_read_store_database: "car_pooling_read_store"
+    db_read_store_hostname: "postgres"
+  stage: unit_testing
+  script:
+    - mix test

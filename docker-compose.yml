@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  carpooling:
+    build:
+      context: .
+    environment:
+      db_event_store_username: postgres
+      db_event_store_password: postgres
+      db_event_store_database: car_pooling_event_store
+      db_event_store_hostname: postgres
+      db_read_store_username: postgres
+      db_read_store_password: postgres
+      db_read_store_database: car_pooling_read_store
+      db_read_store_hostname: postgres
+      MIX_ENV: test
+    ports:
+      - "9091:9091"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:9.6-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/postgres/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
